@@ -1,0 +1,37 @@
+name: Sync Upstream Fork (Branches & Tags)
+
+on:
+  schedule:
+    # Runs once every day at 00:00 UTC
+    - cron: '0 0 * * *'
+  # Allows you to trigger the sync manually from the Actions tab
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync all branches and tags from upstream
+        env:
+          # Replace with your actual fork details if needed, or let GitHub auto-fill
+          FORK_REPO: ${{ github.repository }}
+          UPSTREAM_URL: https://github.com/argoproj/argo-cd.git
+        run: |
+          git init --bare repo.git
+          cd repo.git
+          
+          # Configure remotes
+          git remote add upstream "$UPSTREAM_URL"
+          git remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@://github.com{FORK_REPO}.git"
+          
+          # Fetch all branches and tags from upstream
+          git fetch upstream --prune --tags
+          
+          # Push all upstream branches to your fork (overwriting/updating matching branches)
+          git push origin 'refs/remotes/upstream/*:refs/heads/*'
+          
+          # Push all upstream tags to your fork
+          git push origin 'refs/tags/*:refs/tags/*'
